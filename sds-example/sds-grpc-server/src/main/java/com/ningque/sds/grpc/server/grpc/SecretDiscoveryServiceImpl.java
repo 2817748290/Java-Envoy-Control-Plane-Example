@@ -25,29 +25,44 @@ public class SecretDiscoveryServiceImpl extends SecretDiscoveryServiceGrpc.Secre
 
     @Override
     public StreamObserver<DiscoveryRequest> streamSecrets(StreamObserver<DiscoveryResponse> responseObserver) {
-        TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
-                .setCertificateChain(DataSource.newBuilder().setInlineString(certificateChain).build())
-                .setPrivateKey(DataSource.newBuilder().setInlineString(privateKey).build())
-                .build();
+        return new StreamObserver<DiscoveryRequest>() {
+            @Override
+            public void onNext(DiscoveryRequest request) {
+                TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
+                        .setCertificateChain(DataSource.newBuilder().setInlineString(certificateChain).build())
+                        .setPrivateKey(DataSource.newBuilder().setInlineString(privateKey).build())
+                        .build();
 
-        Secret secret = Secret.newBuilder()
-                .setName("server_cert")
-                .setTlsCertificate(tlsCertificate)
-                .build();
+                Secret secret = Secret.newBuilder()
+                        .setName("server_cert")
+                        .setTlsCertificate(tlsCertificate)
+                        .build();
 
-        Any anySecret = Any.pack(secret);
+                Any anySecret = Any.pack(secret);
 
-        responseObserver.onNext(
-                DiscoveryResponse.newBuilder()
-                        .addResources(anySecret)
-                        .setVersionInfo("v1")
-                        .setCanary(false)
-                        .setNonce("12345")
-                        .setTypeUrl("type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
-                        .build()
-        );
-        responseObserver.onCompleted();
-        return super.streamSecrets(responseObserver);
+                responseObserver.onNext(
+                        DiscoveryResponse.newBuilder()
+                                .addResources(anySecret)
+                                .setVersionInfo("v1")
+                                .setCanary(false)
+                                .setNonce("12345")
+                                .setTypeUrl("type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+                                .build()
+                );
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // Handle any errors that occur during the streaming
+                t.printStackTrace();
+            }
+
+            @Override
+            public void onCompleted() {
+                // When the client has finished sending requests, complete the response
+                responseObserver.onCompleted();
+            }
+        };
     }
 
     @Override
