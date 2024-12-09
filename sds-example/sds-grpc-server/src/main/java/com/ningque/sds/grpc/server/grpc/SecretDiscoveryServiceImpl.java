@@ -9,8 +9,7 @@ import io.envoyproxy.envoy.service.secret.v3.SecretDiscoveryServiceGrpc;
 import io.grpc.stub.StreamObserver;
 import org.lognet.springboot.grpc.GRpcService;
 
-import static com.ningque.sds.grpc.server.grpc.CertConstants.certificateChain;
-import static com.ningque.sds.grpc.server.grpc.CertConstants.privateKey;
+import static com.ningque.sds.grpc.server.grpc.CertConstants.*;
 
 
 @GRpcService
@@ -28,27 +27,52 @@ public class SecretDiscoveryServiceImpl extends SecretDiscoveryServiceGrpc.Secre
         return new StreamObserver<DiscoveryRequest>() {
             @Override
             public void onNext(DiscoveryRequest request) {
-                TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
-                        .setCertificateChain(DataSource.newBuilder().setInlineString(certificateChain).build())
-                        .setPrivateKey(DataSource.newBuilder().setInlineString(privateKey).build())
-                        .build();
+                var resourceName = request.getResourceNames(0);
+                if ("server_cert".equals(resourceName)) {
+                    TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
+                            .setCertificateChain(DataSource.newBuilder().setInlineString(certificateChain).build())
+                            .setPrivateKey(DataSource.newBuilder().setInlineString(privateKey).build())
+                            .build();
+                    Secret secret = Secret.newBuilder()
+                            .setName("server_cert")
+                            .setTlsCertificate(tlsCertificate)
+                            .build();
 
-                Secret secret = Secret.newBuilder()
-                        .setName("server_cert")
-                        .setTlsCertificate(tlsCertificate)
-                        .build();
+                    Any anySecret = Any.pack(secret);
 
-                Any anySecret = Any.pack(secret);
+                    responseObserver.onNext(
+                            DiscoveryResponse.newBuilder()
+                                    .addResources(anySecret)
+                                    .setVersionInfo("v1")
+                                    .setCanary(false)
+                                    .setNonce("12345")
+                                    .setTypeUrl("type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+                                    .build()
+                    );
 
-                responseObserver.onNext(
-                        DiscoveryResponse.newBuilder()
-                                .addResources(anySecret)
-                                .setVersionInfo("v1")
-                                .setCanary(false)
-                                .setNonce("12345")
-                                .setTypeUrl("type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
-                                .build()
-                );
+                    responseObserver.onCompleted();
+                } else if ("validation_context".equals(resourceName)) {
+                    TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
+                            .setCertificateChain(DataSource.newBuilder().setInlineString(caCertificateChain).build())
+                            .build();
+                    Secret secret = Secret.newBuilder()
+                            .setName("validation_context")
+                            .setTlsCertificate(tlsCertificate)
+                            .build();
+
+                    Any anySecret = Any.pack(secret);
+
+                    responseObserver.onNext(
+                            DiscoveryResponse.newBuilder()
+                                    .addResources(anySecret)
+                                    .setVersionInfo("v1")
+                                    .setCanary(false)
+                                    .setNonce("12345")
+                                    .setTypeUrl("type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+                                    .build()
+                    );
+                    responseObserver.onCompleted();
+                }
             }
 
             @Override

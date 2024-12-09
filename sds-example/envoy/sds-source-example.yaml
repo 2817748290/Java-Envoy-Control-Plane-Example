@@ -43,7 +43,24 @@ static_resources:
             name: envoy.transport_sockets.tls
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              # enable mtls
+#              require_client_certificate: true
               common_tls_context:
+#                validation_context_sds_secret_config:
+#                  name: validation_context
+#                  sds_config:
+#                    api_config_source:
+#                      api_type: GRPC
+#                      set_node_on_first_message_only: true
+#                      rate_limit_settings:
+#                        max_tokens:
+#                          value: 1
+#                        fill_rate:
+#                          value: 0.1
+#                      transport_api_version: V3
+#                      grpc_services:
+#                        - envoy_grpc:
+#                            cluster_name: sds_server_mtls
                 tls_certificate_sds_secret_configs:
                 - name: server_cert
                   sds_config:
@@ -71,7 +88,7 @@ static_resources:
                 socket_address:
                   address: 192.168.1.109
                   # address: domain.com
-                  port_value: 9090
+                  port_value: 9192
       # enable gRPC TLS open this
       # transport_socket:
       #   name: envoy.transport_sockets.tls
