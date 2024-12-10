@@ -2,6 +2,7 @@ package com.ningque.sds.grpc.server.grpc;
 
 import com.google.protobuf.Any;
 import io.envoyproxy.envoy.config.core.v3.DataSource;
+import io.envoyproxy.envoy.extensions.transport_sockets.tls.v3.CertificateValidationContext;
 import io.envoyproxy.envoy.extensions.transport_sockets.tls.v3.Secret;
 import io.envoyproxy.envoy.extensions.transport_sockets.tls.v3.TlsCertificate;
 import io.envoyproxy.envoy.service.discovery.v3.*;
@@ -52,19 +53,18 @@ public class SecretDiscoveryServiceImpl extends SecretDiscoveryServiceGrpc.Secre
 
                     responseObserver.onCompleted();
                 } else if ("validation_context".equals(resourceName)) {
-                    TlsCertificate tlsCertificate = TlsCertificate.newBuilder()
-                            .setCertificateChain(DataSource.newBuilder().setInlineString(caCertificateChain).build())
-                            .build();
-                    Secret secret = Secret.newBuilder()
-                            .setName("validation_context")
-                            .setTlsCertificate(tlsCertificate)
+                    CertificateValidationContext validationContext = CertificateValidationContext.newBuilder()
+                            .setTrustedCa(DataSource.newBuilder().setInlineString(caCertificateChain).build())
                             .build();
 
-                    Any anySecret = Any.pack(secret);
+                    Secret secret = Secret.newBuilder()
+                            .setName(resourceName)
+                            .setValidationContext(validationContext)
+                            .build();
 
                     responseObserver.onNext(
                             DiscoveryResponse.newBuilder()
-                                    .addResources(anySecret)
+                                    .addResources(Any.pack(secret))
                                     .setVersionInfo("v1")
                                     .setCanary(false)
                                     .setNonce("12345")
